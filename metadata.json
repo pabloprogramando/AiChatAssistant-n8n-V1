@@ -1,0 +1,6 @@
+{
+  "name": "AI Chat Assistant with login (Gemini + n8n) extended features",
+  "description": "A web application that allows users to chat with an AI assistant powered by Google Gemini.",
+  "requestFramePermissions": [],
+  "prompt": ""
+}
