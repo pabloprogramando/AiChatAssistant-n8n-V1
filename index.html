@@ -1,28 +1,95 @@
-
 <!DOCTYPE html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>AI Chat Bot</title>
+    <title>AI Chat Assistant</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      // ###################################################################################
+      // # CRITICAL CONFIGURATION REQUIRED: N8N WEBHOOK URLs                               #
+      // # The URLs below (N8N_CHAT_RESPONSE_WEBHOOK_URL, N8N_SAVE_CHAT_WEBHOOK_URL,      #
+      // # N8N_RETRIEVE_CHAT_WEBHOOK_URL, N8N_DELETE_CHAT_WEBHOOK_URL) are CURRENTLY       #
+      // # EXAMPLES/PLACEHOLDERS.                                                          #
+      // #                                                                                 #
+      // # YOU MUST REPLACE THESE WITH YOUR ACTUAL PRODUCTION URLS FROM YOUR N8N WORKFLOWS.#
+      // #                                                                                 #
+      // # If you see errors in the console like "URL not configured" or "URL includes     #
+      // # agreeableriver", it means this step has not been done correctly.                #
+      // # Your application WILL NOT WORK for AI replies, chat history, or deleting chats  #
+      // # until this is done.                                                             #
+      // ###################################################################################
+      window.APP_CONFIG = {
+        // ===> REPLACE THIS WITH YOUR N8N PRODUCTION URL FOR FETCHING AI CHAT RESPONSES <===
+        N8N_CHAT_RESPONSE_WEBHOOK_URL: 'https://n8n-app.agreeableriver-225df3a2.westus.azurecontainerapps.io/webhook/chat', 
+        
+        // ===> REPLACE THIS WITH YOUR N8N PRODUCTION URL FOR SAVING CHAT CONVERSATIONS <===
+        N8N_SAVE_CHAT_WEBHOOK_URL: 'https://n8n-app.agreeableriver-225df3a2.westus.azurecontainerapps.io/webhook/a434013a-f0e0-441f-b066-6d63ed86dd51', 
+        
+        // ===> REPLACE THIS WITH YOUR N8N PRODUCTION URL FOR RETRIEVING CHAT CONVERSATIONS <===
+        N8N_RETRIEVE_CHAT_WEBHOOK_URL: 'https://n8n-app.agreeableriver-225df3a2.westus.azurecontainerapps.io/webhook/6c484577-0818-4ba1-9ca4-6fa9e575de2e',
+
+        // ===> REPLACE THIS WITH YOUR N8N PRODUCTION URL FOR DELETING CHAT CONVERSATIONS <===
+        N8N_DELETE_CHAT_WEBHOOK_URL: 'https://n8n-app.agreeableriver-225df3a2.westus.azurecontainerapps.io/webhook/d43bc316-1994-440b-beae-ea4e1953f46f', // Example: 'https://your-n8n-instance/webhook/delete-chat'
+        
+        API_KEY: '' // This is a general placeholder. For Gemini, API_KEY is handled via process.env.API_KEY.
+      };
+
+      // Developer Warnings: These checks help identify if placeholder URLs are still in use.
+      if (!window.APP_CONFIG.N8N_CHAT_RESPONSE_WEBHOOK_URL || window.APP_CONFIG.N8N_CHAT_RESPONSE_WEBHOOK_URL.includes("YOUR_N8N_CHAT_RESPONSE_WEBHOOK_URL_PLACEHOLDER") || !window.APP_CONFIG.N8N_CHAT_RESPONSE_WEBHOOK_URL.includes("agreeableriver")) {
+        console.warn(
+          "CRITICAL CONFIGURATION ERROR: N8N_CHAT_RESPONSE_WEBHOOK_URL is not configured correctly in index.html or is still a placeholder. AI replies WILL NOT WORK. Please set your actual n8n Production URL."
+        );
+      }
+      if (!window.APP_CONFIG.N8N_SAVE_CHAT_WEBHOOK_URL || window.APP_CONFIG.N8N_SAVE_CHAT_WEBHOOK_URL.includes("YOUR_N8N_SAVE_CHAT_WEBHOOK_URL_PLACEHOLDER") || !window.APP_CONFIG.N8N_SAVE_CHAT_WEBHOOK_URL.includes("agreeableriver")) {
+        console.warn(
+          "CRITICAL CONFIGURATION ERROR: N8N_SAVE_CHAT_WEBHOOK_URL is not configured correctly in index.html or is still a placeholder. Saving chat history WILL NOT WORK. Please set your actual n8n Production URL."
+        );
+      }
+      if (!window.APP_CONFIG.N8N_RETRIEVE_CHAT_WEBHOOK_URL || window.APP_CONFIG.N8N_RETRIEVE_CHAT_WEBHOOK_URL.includes("YOUR_N8N_RETRIEVE_CHAT_WEBHOOK_URL_PLACEHOLDER") || !window.APP_CONFIG.N8N_RETRIEVE_CHAT_WEBHOOK_URL.includes("agreeableriver")) {
+        console.warn(
+          "CRITICAL CONFIGURATION ERROR: N8N_RETRIEVE_CHAT_WEBHOOK_URL is not configured correctly in index.html or is still a placeholder. Retrieving chat history WILL NOT WORK. Please set your actual n8n Production URL."
+        );
+      }
+      if (!window.APP_CONFIG.N8N_DELETE_CHAT_WEBHOOK_URL || window.APP_CONFIG.N8N_DELETE_CHAT_WEBHOOK_URL.includes("YOUR_N8N_DELETE_CHAT_WEBHOOK_URL_PLACEHOLDER") || (!window.APP_CONFIG.N8N_DELETE_CHAT_WEBHOOK_URL.startsWith("http") && window.APP_CONFIG.N8N_DELETE_CHAT_WEBHOOK_URL !== 'YOUR_N8N_DELETE_CHAT_WEBHOOK_URL_PLACEHOLDER')) {
+        console.warn(
+          "CRITICAL CONFIGURATION WARNING: N8N_DELETE_CHAT_WEBHOOK_URL is not configured correctly in index.html, is still a placeholder, or is not a valid HTTP/HTTPS URL. Deleting chat history from the backend WILL NOT WORK. Please set your actual n8n Production URL."
+        );
+      }
+    </script>
     <style>
-      /* Custom scrollbar for webkit browsers */
+      /* General page styling for better aesthetics with the new layout */
+      html, body, #root {
+        height: 100%;
+        margin: 0;
+        padding: 0;
+        overflow: hidden; /* Prevent body scrollbars when sidebar/main content handle their own */
+      }
+      
+      body {
+        font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif, "Apple Color Emoji", "Segoe UI Emoji", "Segoe UI Symbol";
+        -webkit-font-smoothing: antialiased;
+        -moz-osx-font-smoothing: grayscale;
+      }
+
+      /* Custom scrollbar for main chat window (ChatWindow.tsx might have specific one too) */
+      /* This is a more general scrollbar for Webkit, if needed */
       ::-webkit-scrollbar {
         width: 8px;
+        height: 8px;
       }
       ::-webkit-scrollbar-track {
-        background: #1f2937; /* gray-800 */
+        background: #2d3748; /* gray-800 (Tailwind) */
       }
       ::-webkit-scrollbar-thumb {
-        background: #4b5563; /* gray-600 */
+        background: #4a5568; /* gray-600 (Tailwind) */
         border-radius: 4px;
       }
       ::-webkit-scrollbar-thumb:hover {
-        background: #6b7280; /* gray-500 */
+        background: #718096; /* gray-500 (Tailwind) */
       }
 
-      /* Custom animations for typing indicator */
+      /* Custom animations for typing indicator (already present) */
       @keyframes bounce_1 {
         0%, 80%, 100% { transform: scale(0); }
         40% { transform: scale(1.0); }
@@ -48,32 +115,23 @@
       }
     </style>
 
+<link rel="stylesheet" href="/index.css">
   <script type="importmap">
 {
   "imports": {
     "react": "https://esm.sh/react@^19.1.0",
     "react-dom/": "https://esm.sh/react-dom@^19.1.0/",
-    "react/": "https://esm.sh/react@^19.1.0/"
+    "react/": "https://esm.sh/react@^19.1.0/",
+    "@google/genai": "https://esm.sh/@google/genai@^1.2.0",
+    "@supabase/supabase-js": "https://esm.sh/@supabase/supabase-js@^2.43.1",
+    "uuid": "https://esm.sh/uuid@^9.0.1"
   }
 }
 </script>
-  <script type="module" crossorigin src="/ai-chat-assistant--n8n-/assets/index-Bjh0-_T4.js"></script>
+  <script type="module" crossorigin src="/assets/index-5pv1KpCA.js"></script>
 </head>
   <body class="bg-gray-900">
     <noscript>You need to enable JavaScript to run this app.</noscript>
     <div id="root" class="h-screen"></div>
-
-    <!--
-      This HTML file is a template.
-      If you open it directly in the browser, you will see an empty page.
-
-      You can add webfonts, meta tags, or analytics to this file.
-      The build step will place the bundled scripts into the <body> tag.
-
-      To begin the development, run `npm start` or `yarn start`.
-      To create a production bundle, use `npm run build` or `yarn build`.
-      <script src="index.tsx" type="module"></script>
-      </html><link rel="stylesheet" href="index.css">
-    -->
-  </body>
-
+</body>
+</html>
